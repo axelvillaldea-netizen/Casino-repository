@@ -18,7 +18,21 @@ class SystemHandlers:
         self.db = db
         self.user_input_context = {}
         self.user_bets = {}
+        self.user_crash_targets = {}
+        self.crash_history = [1.00, 2.50, 1.10, 5.00, 1.20]
+        self.games_state = {}  # État des jeux complexes
         self.register_handlers()
+    
+    def get_correct_bet_menu(self, game, bet, uid):
+        """Construit le menu de mise avec les bons paramètres selon le jeu"""
+        crash_target = None
+        crash_history = None
+        
+        if game == "crash":
+            crash_target = self.user_crash_targets.get(uid, 2.0)
+            crash_history = self.crash_history
+        
+        return get_bet_menu(game, bet, uid, crash_target, crash_history)
     
     def register_handlers(self):
         @self.dp.message(lambda m: m.text == "/start" or m.text == "/start@olympuscasinobot")
@@ -174,7 +188,7 @@ class SystemHandlers:
                     await msg.delete()
                 except:
                     pass
-                await m.answer(f"🎮 **{game.upper()}**", reply_markup=get_bet_menu(game, amt, uid), parse_mode="Markdown")
+                await m.answer(f"🎮 **{game.upper()}**", reply_markup=self.get_correct_bet_menu(game, amt, uid), parse_mode="Markdown")
 
         # --- MISE BOUTONS ---
         @self.dp.callback_query(F.data.startswith("b_"))
@@ -205,4 +219,6 @@ class SystemHandlers:
             if curr < 10:
                 curr = 10
             self.user_bets[uid] = curr
-            await c.message.edit_reply_markup(reply_markup=get_bet_menu(game, curr, uid))
+            
+            # Utilise la méthode helper pour construire le bon menu
+            await c.message.edit_reply_markup(reply_markup=self.get_correct_bet_menu(game, curr, uid))

@@ -11,20 +11,25 @@ from app.utils.keyboards import get_bet_menu
 class CrashGame:
     """Jeu du Crash"""
     
-    def __init__(self, dp, db):
+    def __init__(self, dp, db, system_handlers=None):
         self.dp = dp
         self.db = db
-        self.crash_targets = {}
-        self.crash_history = [1.00, 2.50, 1.10, 5.00, 1.20]
+        self.system_handlers = system_handlers
         self.register_handlers()
     
     def register_handlers(self):
         @self.dp.callback_query(F.data == "game_crash")
         async def g_crash(c):
             uid = c.from_user.id
-            if uid not in self.crash_targets:
-                self.crash_targets[uid] = 2.0
-            await c.message.edit_text("🚀 **CRASH**", reply_markup=get_bet_menu("crash", 50, uid, self.crash_targets[uid], self.crash_history))
+            if self.system_handlers:
+                if uid not in self.system_handlers.user_crash_targets:
+                    self.system_handlers.user_crash_targets[uid] = 2.0
+                crash_target = self.system_handlers.user_crash_targets[uid]
+                crash_history = self.system_handlers.crash_history
+            else:
+                crash_target = 2.0
+                crash_history = [1.00, 2.50, 1.10]
+            await c.message.edit_text("🚀 **CRASH**", reply_markup=get_bet_menu("crash", 50, uid, crash_target, crash_history))
 
         @self.dp.callback_query(F.data.startswith("play_crash:"))
         async def p_crash(c):
@@ -37,9 +42,10 @@ class CrashGame:
             self.db.modify_balance(uid, -bet, "wager")
             msg = await c.message.edit_text("🚀 1.00x")
             crash = CasinoLogic.get_crash_multiplier()
-            self.crash_history.append(crash)
-            if len(self.crash_history) > 10:
-                self.crash_history.pop(0)
+            if self.system_handlers:
+                self.system_handlers.crash_history.append(crash)
+                if len(self.system_handlers.crash_history) > 10:
+                    self.system_handlers.crash_history.pop(0)
             curr = 1.0
             while curr < crash and curr < tgt:
                 await asyncio.sleep(0.5)
@@ -62,7 +68,15 @@ class CrashGame:
             act = p[1]
             val = float(p[2])
             uid = c.from_user.id
-            curr = self.crash_targets.get(uid, 2.0)
-            curr = curr + val if act == "add" else max(1.01, curr - val)
-            self.crash_targets[uid] = round(curr, 2)
-            await c.message.edit_reply_markup(reply_markup=get_bet_menu("crash", 50, uid, self.crash_targets[uid], self.crash_history))
+            if self.system_handlers:
+                curr = self.system_handlers.user_crash_targets.get(uid, 2.0)
+                curr = curr + val if act == "add" else max(1.01, curr - val)
+                self.system_handlers.user_crash_targets[uid] = round(curr, 2)
+                crash_target = self.system_handlers.user_crash_targets[uid]
+                crash_history = self.system_handlers.crash_history
+                bet = self.system_handlers.user_bets.get(uid, 50)
+            else:
+                crash_target = 2.0
+                crash_history = [1.00, 2.50, 1.10]
+                bet = 50
+            await c.message.edit_reply_markup(reply_markup=get_bet_menu("crash", bet, uid, crash_target, crash_history))

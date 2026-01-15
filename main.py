@@ -29,11 +29,11 @@ def register_all_handlers():
     """Enregistre tous les handlers du bot"""
     logger.info("Enregistrement des handlers...")
     
-    # Handlers système
-    SystemHandlers(dp, db)
+    # Handlers système (doit être en premier)
+    system_handlers = SystemHandlers(dp, db)
     
     # Jeux
-    CrashGame(dp, db)
+    CrashGame(dp, db, system_handlers)
     CardGames(dp, db)
     SimplGames(dp, db)
     ComplexGames(dp, db)
