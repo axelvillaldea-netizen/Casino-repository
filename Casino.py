@@ -15,7 +15,7 @@ from aiogram.exceptions import TelegramBadRequest
 # ==============================================================================
 # 1. CONFIGURATION DU SERVEUR
 # ==============================================================================
-TOKEN = ":" 
+TOKEN = "8509898573:AAHdm9TalH1aCaCpXYscJceepJKqLKTwIRg" 
 DB_NAME = "casino_final_cut.db"
 ADMIN_ID = 7464738226
 
